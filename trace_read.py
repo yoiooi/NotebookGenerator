@@ -294,6 +294,50 @@ def divide_values(values):
         # STEP 3-2. function이 없을 경우 (case 1) 처리
         return stan_var, values, func_set_list
 
+def get_valid_line(valid_line, check_line):
+    is_breaking = check_line_breaking(check_line)
+
+    # not append line
+    if(not is_breaking):
+        return valid_line
+
+    # append line
+    next_line = f.readline()
+    valid_line = append_line(valid_line, next_line)
+
+    return get_valid_line(valid_line, valid_line)
+
+def check_line_breaking(line):
+    is_breaking = False
+    reverse_line = line[::-1]
+
+    for c in reverse_line:
+        if c == '\n':
+            continue
+        if c == ' ':
+            continue
+        if c == '.' or c == ',':
+            is_breaking = True
+            break
+        else:
+            is_breaking = False
+            break
+
+    return is_breaking
+
+def append_line(line, next_line):
+    # 맨 끝에 '.' 또는 ',' 가 있는 경우 (함수 chaining 또는 parameter append)
+    if (line[-1:] == '\n'):
+        line = line[:-1]
+
+    colon_index = next_line.find(':')
+    if (colon_index > -1):
+        next_line = next_line[colon_index + 1:]
+
+    line += next_line.strip()
+
+    return line
+
 while line:
     # STEP 1. valid log 파악
     log_pattern = '.py(.*?)\:'
@@ -308,9 +352,18 @@ while line:
         line = f.readline()
         continue
 
+    # STEP 1-3. line breacking 인지 확인
+    line = get_valid_line(line, line)
+
+    # 맨 처음에 '.' 또는, ',' 가 있는 경우 -> 고려 안함
+    if(line[0] == '.' or line[0] == ','):
+        line = f.readline()
+        continue
+
     # STEP 2. line number 관련 정보 제거
     colon_index = line.find(':')
-    line = line[colon_index + 1:]
+    if(colon_index > -1):
+        line = line[colon_index + 1:]
 
     # STEP 3. 대입 연산자('=') 유무 파악하여 create_var 결정
     # 만약 대입 연산자('=')가 있다면 그 위치 전에 괄호가 없어야 유효
